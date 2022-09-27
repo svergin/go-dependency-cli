@@ -28,3 +28,20 @@ func TestGitClone_should_clone_a_git_repo(t *testing.T) {
 	// defer os.Remove("LICENSE")
 
 }
+
+func Benchmark_Read_File(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		dateisystem, err := GitClone(context.Background(), "https://github.com/halimath/mini-httpd.git", "")
+		assert.NoError(b, err)
+		datei, err := dateisystem.Open("LICENSE")
+		if err != nil {
+			b.Fatal(err)
+		}
+		// defer datei.Close()
+
+		_, err = io.ReadAll(datei)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
