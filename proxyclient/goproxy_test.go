@@ -1,6 +1,7 @@
 package proxyclient
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,14 +10,14 @@ import (
 func TestGetversions(t *testing.T) {
 	modulename := "gopkg.in/src-d/go-billy.v4"
 
-	versions, err := GetVersions(modulename)
+	versions, err := GetVersions(context.Background(), modulename)
 	assert.NoError(t, err)
 	assert.Len(t, versions, 11)
 }
 func TestLatest(t *testing.T) {
 	modulename := "gopkg.in/src-d/go-billy.v4"
 
-	result, err := GetLatest(modulename)
+	result, err := GetLatest(context.Background(), modulename)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +26,7 @@ func TestLatest(t *testing.T) {
 func TestGetInfo(t *testing.T) {
 	modulename := "gopkg.in/src-d/go-billy.v4"
 	v := "v4.3.2"
-	result, err := GetInfo(modulename, v)
+	result, err := GetInfo(context.Background(), modulename, v)
 	if err != nil {
 		t.Fatal(err)
 	}

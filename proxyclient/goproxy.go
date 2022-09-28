@@ -1,6 +1,7 @@
 package proxyclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,12 +17,16 @@ type Info struct {
 
 const proxybase = "https://proxy.golang.org"
 
-func GetVersions(module string) ([]Info, error) {
+func GetVersions(ctx context.Context, module string) ([]Info, error) {
 	var result = make([]Info, 0)
-
+	client := http.Client{}
 	url := fmt.Sprintf("%s/%s/@v/list", proxybase, module)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	res, err := http.Get(url)
+	res, err := client.Do(req)
 
 	if err != nil {
 		return nil, err
@@ -41,10 +46,17 @@ func GetVersions(module string) ([]Info, error) {
 	return result, nil
 }
 
-func GetInfo(module string, version string) (*Info, error) {
+func GetInfo(ctx context.Context, module string, version string) (*Info, error) {
 	url := fmt.Sprintf("%s/%s/@v/%s.info", proxybase, module, version)
+	client := http.Client{}
+	myContext, cancel := context.WithTimeout(ctx, time.Duration(200)*time.Millisecond)
+	defer cancel()
+	req, err := http.NewRequestWithContext(myContext, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	res, err := http.Get(url)
+	res, err := client.Do(req)
 
 	if err != nil {
 		return nil, err
@@ -56,12 +68,16 @@ func GetInfo(module string, version string) (*Info, error) {
 	return getInfoFromBody(res)
 }
 
-func GetLatest(module string) (*Info, error) {
+func GetLatest(ctx context.Context, module string) (*Info, error) {
 
 	url := fmt.Sprintf("%s/%s/@latest", proxybase, module)
+	client := http.Client{}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	res, err := http.Get(url)
-
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
