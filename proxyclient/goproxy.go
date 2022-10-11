@@ -3,6 +3,7 @@ package proxyclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,12 +16,33 @@ type Info struct {
 	Time    time.Time `json:"time"`
 }
 
-const proxybase = "https://proxy.golang.org"
+type proxyparam struct {
+	Module      string
+	TimeoutInMs uint32
+	ProxyUrl    string
+	Version     *string
+}
 
-func GetVersions(ctx context.Context, module string) ([]Info, error) {
+const proxybase = "https://proxy.golang.org"
+const timeout = 200
+
+var ErrFehlendeModulversion = errors.New("Die Version des Moduls muss angegeben werden")
+
+//TODO: https://dev.azure.com/nortal-de-dev-training/_git/learning-go?path=/doc/1.3.md&version=GBmain&_a=preview
+
+func DefaultParam(modulename string, version *string) *proxyparam {
+	return &proxyparam{
+		Module:      modulename,
+		TimeoutInMs: timeout,
+		ProxyUrl:    proxybase,
+		Version:     version,
+	}
+}
+
+func GetVersions(ctx context.Context, param *proxyparam) ([]Info, error) {
 	var result = make([]Info, 0)
 	client := http.Client{}
-	url := fmt.Sprintf("%s/%s/@v/list", proxybase, module)
+	url := fmt.Sprintf("%s/%s/@v/list", param.ProxyUrl, param.Module)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -46,10 +68,13 @@ func GetVersions(ctx context.Context, module string) ([]Info, error) {
 	return result, nil
 }
 
-func GetInfo(ctx context.Context, module string, version string) (*Info, error) {
-	url := fmt.Sprintf("%s/%s/@v/%s.info", proxybase, module, version)
+func GetInfo(ctx context.Context, param *proxyparam) (*Info, error) {
+	if param.Version == nil {
+		return nil, ErrFehlendeModulversion
+	}
+	url := fmt.Sprintf("%s/%s/@v/%s.info", param.ProxyUrl, param.Module, *param.Version)
 	client := http.Client{}
-	myContext, cancel := context.WithTimeout(ctx, time.Duration(200)*time.Millisecond)
+	myContext, cancel := context.WithTimeout(ctx, time.Duration(param.TimeoutInMs)*time.Millisecond)
 	defer cancel()
 	req, err := http.NewRequestWithContext(myContext, http.MethodGet, url, nil)
 	if err != nil {
@@ -68,9 +93,9 @@ func GetInfo(ctx context.Context, module string, version string) (*Info, error) 
 	return getInfoFromBody(res)
 }
 
-func GetLatest(ctx context.Context, module string) (*Info, error) {
+func GetLatest(ctx context.Context, param *proxyparam) (*Info, error) {
 
-	url := fmt.Sprintf("%s/%s/@latest", proxybase, module)
+	url := fmt.Sprintf("%s/%s/@latest", param.ProxyUrl, param.Module)
 	client := http.Client{}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

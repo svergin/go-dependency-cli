@@ -8,28 +8,26 @@ import (
 )
 
 func TestGetversions(t *testing.T) {
-	modulename := "gopkg.in/src-d/go-billy.v4"
 
-	versions, err := GetVersions(context.Background(), modulename)
+	versions, err := GetVersions(context.Background(), DefaultParam("gopkg.in/src-d/go-billy.v4", nil))
 	assert.NoError(t, err)
 	assert.Len(t, versions, 11)
 }
 func TestLatest(t *testing.T) {
-	modulename := "gopkg.in/src-d/go-billy.v4"
 
-	result, err := GetLatest(context.Background(), modulename)
+	result, err := GetLatest(context.Background(), DefaultParam("gopkg.in/src-d/go-billy.v4", nil))
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, "v4.3.2", result.Version)
 }
 func TestGetInfo(t *testing.T) {
-	modulename := "gopkg.in/src-d/go-billy.v4"
-	v := "v4.3.2"
-	result, err := GetInfo(context.Background(), modulename, v)
+	version := "v4.3.2"
+	param := DefaultParam("gopkg.in/src-d/go-billy.v4", &version)
+	result, err := GetInfo(context.Background(), param)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, v, result.Version)
+	assert.Equal(t, version, result.Version)
 }
