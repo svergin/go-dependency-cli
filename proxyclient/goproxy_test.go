@@ -8,14 +8,16 @@ import (
 )
 
 func TestGetversions(t *testing.T) {
-
-	versions, err := GetVersions(context.Background(), DefaultParam("gopkg.in/src-d/go-billy.v4", nil))
+	gpc := GoProxyClient{}
+	gpc.WithParams("gopkg.in/src-d/go-billy.v4", nil)
+	versions, err := gpc.GetVersions(context.Background())
 	assert.NoError(t, err)
 	assert.Len(t, versions, 11)
 }
 func TestLatest(t *testing.T) {
-
-	result, err := GetLatest(context.Background(), DefaultParam("gopkg.in/src-d/go-billy.v4", nil))
+	gpc := GoProxyClient{}
+	gpc.WithParams("gopkg.in/src-d/go-billy.v4", nil)
+	result, err := gpc.GetLatest(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +25,9 @@ func TestLatest(t *testing.T) {
 }
 func TestGetInfo(t *testing.T) {
 	version := "v4.3.2"
-	param := DefaultParam("gopkg.in/src-d/go-billy.v4", &version)
-	result, err := GetInfo(context.Background(), param)
+	gpc := GoProxyClient{}
+	gpc.WithParams("gopkg.in/src-d/go-billy.v4", &version)
+	result, err := gpc.GetInfo(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

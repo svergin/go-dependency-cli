@@ -23,6 +23,11 @@ type proxyparam struct {
 	Version     *string
 }
 
+type GoProxyClient struct {
+	http.Client
+	params *proxyparam
+}
+
 const proxybase = "https://proxy.golang.org"
 const timeout = 200
 
@@ -30,8 +35,8 @@ var ErrFehlendeModulversion = errors.New("Die Version des Moduls muss angegeben 
 
 //TODO: https://dev.azure.com/nortal-de-dev-training/_git/learning-go?path=/doc/1.3.md&version=GBmain&_a=preview
 
-func DefaultParam(modulename string, version *string) *proxyparam {
-	return &proxyparam{
+func (gpc *GoProxyClient) WithParams(modulename string, version *string) {
+	gpc.params = &proxyparam{
 		Module:      modulename,
 		TimeoutInMs: timeout,
 		ProxyUrl:    proxybase,
@@ -39,16 +44,16 @@ func DefaultParam(modulename string, version *string) *proxyparam {
 	}
 }
 
-func GetVersions(ctx context.Context, param *proxyparam) ([]Info, error) {
+func (gpc *GoProxyClient) GetVersions(ctx context.Context) ([]Info, error) {
 	var result = make([]Info, 0)
-	client := http.Client{}
-	url := fmt.Sprintf("%s/%s/@v/list", param.ProxyUrl, param.Module)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	myContext, cancel := context.WithTimeout(ctx, time.Duration(gpc.params.TimeoutInMs)*time.Millisecond)
+	req, err := erstelleRequest(myContext, http.MethodGet, "%s/%s/@v/list", gpc.params)
+	defer cancel()
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := client.Do(req)
+	res, err := gpc.Do(req)
 
 	if err != nil {
 		return nil, err
@@ -68,20 +73,18 @@ func GetVersions(ctx context.Context, param *proxyparam) ([]Info, error) {
 	return result, nil
 }
 
-func GetInfo(ctx context.Context, param *proxyparam) (*Info, error) {
-	if param.Version == nil {
+func (gpc *GoProxyClient) GetInfo(ctx context.Context) (*Info, error) {
+	if gpc.params.Version == nil {
 		return nil, ErrFehlendeModulversion
 	}
-	url := fmt.Sprintf("%s/%s/@v/%s.info", param.ProxyUrl, param.Module, *param.Version)
-	client := http.Client{}
-	myContext, cancel := context.WithTimeout(ctx, time.Duration(param.TimeoutInMs)*time.Millisecond)
+	myContext, cancel := context.WithTimeout(ctx, time.Duration(gpc.params.TimeoutInMs)*time.Millisecond)
+	req, err := erstelleRequest(myContext, http.MethodGet, "%s/%s/@v/%s.info", gpc.params)
 	defer cancel()
-	req, err := http.NewRequestWithContext(myContext, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := client.Do(req)
+	res, err := gpc.Do(req)
 
 	if err != nil {
 		return nil, err
@@ -93,16 +96,16 @@ func GetInfo(ctx context.Context, param *proxyparam) (*Info, error) {
 	return getInfoFromBody(res)
 }
 
-func GetLatest(ctx context.Context, param *proxyparam) (*Info, error) {
+func (gpc *GoProxyClient) GetLatest(ctx context.Context) (*Info, error) {
 
-	url := fmt.Sprintf("%s/%s/@latest", param.ProxyUrl, param.Module)
-	client := http.Client{}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	myContext, cancel := context.WithTimeout(ctx, time.Duration(gpc.params.TimeoutInMs)*time.Millisecond)
+	req, err := erstelleRequest(myContext, http.MethodGet, "%s/%s/@latest", gpc.params)
+	defer cancel()
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := client.Do(req)
+	res, err := gpc.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +114,18 @@ func GetLatest(ctx context.Context, param *proxyparam) (*Info, error) {
 	}
 
 	return getInfoFromBody(res)
+}
+
+func erstelleRequest(ctx context.Context, httpMethod string, resturl string, param *proxyparam) (*http.Request, error) {
+	return http.NewRequestWithContext(ctx, http.MethodGet, erzeugeUrl(resturl, param), nil)
+}
+
+func erzeugeUrl(resturl string, param *proxyparam) string {
+	if param.Version != nil {
+		return fmt.Sprintf(resturl, param.ProxyUrl, param.Module, *param.Version)
+	}
+	return fmt.Sprintf(resturl, param.ProxyUrl, param.Module)
+
 }
 
 func getInfoFromBody(res *http.Response) (*Info, error) {
