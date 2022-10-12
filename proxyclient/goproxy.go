@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/rogpeppe/go-internal/modfile"
 )
 
 type Info struct {
@@ -28,12 +30,31 @@ type GoProxyClient struct {
 	params *proxyparam
 }
 
+type DependencyReport struct {
+}
+
 const proxybase = "https://proxy.golang.org"
 const timeout = 200
 
 var ErrFehlendeModulversion = errors.New("Die Version des Moduls muss angegeben werden")
 
 //TODO: https://dev.azure.com/nortal-de-dev-training/_git/learning-go?path=/doc/1.3.md&version=GBmain&_a=preview
+
+func (gpc *GoProxyClient) ErstelleReport() (DependencyReport, error) {
+	dr := DependencyReport{}
+
+	data, err := gpc.GetGoMod(context.Background())
+	if err != nil {
+		return dr, err
+	}
+	f, err := modfile.Parse("myfilename", data, nil)
+	if err != nil {
+		return dr, err
+	}
+	fmt.Println(f.Require)
+
+	return dr, nil
+}
 
 func (gpc *GoProxyClient) WithParams(modulename string, version *string) {
 	gpc.params = &proxyparam{
@@ -96,6 +117,29 @@ func (gpc *GoProxyClient) GetInfo(ctx context.Context) (*Info, error) {
 	return getInfoFromBody(res)
 }
 
+func (gpc *GoProxyClient) GetGoMod(ctx context.Context) ([]byte, error) {
+	if gpc.params.Version == nil {
+		return nil, ErrFehlendeModulversion
+	}
+	myContext, cancel := context.WithTimeout(ctx, time.Duration(gpc.params.TimeoutInMs)*time.Millisecond)
+	req, err := erstelleRequest(myContext, http.MethodGet, "%s/%s/@v/%s.mod", gpc.params)
+	defer cancel()
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := gpc.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error occured, status was %q", res.Status)
+	}
+
+	return io.ReadAll(res.Body)
+}
+
 func (gpc *GoProxyClient) GetLatest(ctx context.Context) (*Info, error) {
 
 	myContext, cancel := context.WithTimeout(ctx, time.Duration(gpc.params.TimeoutInMs)*time.Millisecond)
@@ -140,4 +184,8 @@ func getInfoFromBody(res *http.Response) (*Info, error) {
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (dr *DependencyReport) String() string {
+	return ""
 }

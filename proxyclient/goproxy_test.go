@@ -2,6 +2,7 @@ package proxyclient
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,4 +34,26 @@ func TestGetInfo(t *testing.T) {
 	}
 
 	assert.Equal(t, version, result.Version)
+}
+
+func TestGetGoMod(t *testing.T) {
+	version := "v4.3.2"
+	gpc := GoProxyClient{}
+	gpc.WithParams("gopkg.in/src-d/go-billy.v4", &version)
+	result, err := gpc.GetGoMod(context.Background())
+	fmt.Println(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Contains(t, result, "module gopkg.in/src-d/go-billy.v4")
+}
+
+func TestErstelleReport(t *testing.T) {
+	version := "v4.3.2"
+	gpc := GoProxyClient{}
+	gpc.WithParams("gopkg.in/src-d/go-billy.v4", &version)
+	_, err := gpc.ErstelleReport()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
