@@ -1,24 +1,21 @@
-package proxyclient
+package goproxy
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetversions(t *testing.T) {
-	gpc := GoProxyClient{}
-	gpc.WithParams("gopkg.in/src-d/go-billy.v4", nil)
-	versions, err := gpc.GetVersions(context.Background())
+	gpc := Client{}
+	versions, err := gpc.GetVersions(context.Background(), "gopkg.in/src-d/go-billy.v4")
 	assert.NoError(t, err)
 	assert.Len(t, versions, 11)
 }
 func TestLatest(t *testing.T) {
-	gpc := GoProxyClient{}
-	gpc.WithParams("gopkg.in/src-d/go-billy.v4", nil)
-	result, err := gpc.GetLatest(context.Background())
+	gpc := Client{}
+	result, err := gpc.GetLatest(context.Background(), "gopkg.in/src-d/go-billy.v4")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,34 +23,11 @@ func TestLatest(t *testing.T) {
 }
 func TestGetInfo(t *testing.T) {
 	version := "v4.3.2"
-	gpc := GoProxyClient{}
-	gpc.WithParams("gopkg.in/src-d/go-billy.v4", &version)
-	result, err := gpc.GetInfo(context.Background())
+	gpc := Client{}
+	result, err := gpc.GetInfo(context.Background(), "gopkg.in/src-d/go-billy.v4", version)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Equal(t, version, result.Version)
-}
-
-func TestGetGoMod(t *testing.T) {
-	version := "v4.3.2"
-	gpc := GoProxyClient{}
-	gpc.WithParams("gopkg.in/src-d/go-billy.v4", &version)
-	result, err := gpc.GetGoMod(context.Background())
-	fmt.Println(result)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Contains(t, result, "module gopkg.in/src-d/go-billy.v4")
-}
-
-func TestErstelleReport(t *testing.T) {
-	version := "v4.3.2"
-	gpc := GoProxyClient{}
-	gpc.WithParams("gopkg.in/src-d/go-billy.v4", &version)
-	_, err := gpc.ErstelleReport()
-	if err != nil {
-		t.Fatal(err)
-	}
 }

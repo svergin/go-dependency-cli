@@ -10,7 +10,7 @@ import (
 )
 
 func TestGitClone_should_clone_a_git_repo(t *testing.T) {
-	dateisystem, err := GitClone(context.Background(), "https://github.com/halimath/mini-httpd.git", "")
+	dateisystem, err := Clone(context.Background(), "https://github.com/halimath/mini-httpd.git", "")
 	assert.NoError(t, err)
 	datei, err := dateisystem.Open("LICENSE")
 	if err != nil {
@@ -31,7 +31,7 @@ func TestGitClone_should_clone_a_git_repo(t *testing.T) {
 
 func Benchmark_Read_File(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		dateisystem, err := GitClone(context.Background(), "https://github.com/halimath/mini-httpd.git", "")
+		dateisystem, err := Clone(context.Background(), "https://github.com/halimath/mini-httpd.git", "")
 		assert.NoError(b, err)
 		datei, err := dateisystem.Open("LICENSE")
 		if err != nil {

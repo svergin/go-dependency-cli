@@ -14,7 +14,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
-func GitClone(ctx context.Context, url, branch string) (fs.FS, error) {
+func Clone(ctx context.Context, url, branch string) (fs.FS, error) {
 	if branch == "" {
 		branch = "main"
 	}
