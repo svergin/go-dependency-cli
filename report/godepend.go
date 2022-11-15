@@ -3,9 +3,11 @@ package report
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go-dependency-cli/git"
 	goproxy "go-dependency-cli/proxyclient"
 	"io"
+	"strings"
 
 	"github.com/rogpeppe/go-internal/modfile"
 	"github.com/rogpeppe/go-internal/semver"
@@ -21,12 +23,13 @@ type DependencyReport struct {
 }
 
 type ReportEntry struct {
+	module         string
 	currentVersion string
 	newestVersion  string
 	actual         bool
 }
 
-func (dr *DependencyResolver) ErstelleReport(ctx context.Context, repoURL string, optBranch string) (*DependencyReport, error) {
+func (dr *DependencyResolver) CreateReport(ctx context.Context, repoURL string, optBranch string) (*DependencyReport, error) {
 	report := DependencyReport{}
 
 	filesystem, err := git.Clone(ctx, repoURL, optBranch)
@@ -47,20 +50,43 @@ func (dr *DependencyResolver) ErstelleReport(ctx context.Context, repoURL string
 	}
 
 	for _, req := range modfile.Require {
-		var rpe ReportEntry
-		rpe.currentVersion = req.Mod.Version
-		info, err := dr.gpc.GetLatest(ctx, req.Mod.Path)
+		rpe, err := dr.createEntry(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		rpe.newestVersion = info.Version
-		if !semver.IsValid(rpe.currentVersion) || !semver.IsValid(rpe.newestVersion) {
-			return nil, errors.New("version not valid")
-		}
-		c := semver.Compare(rpe.currentVersion, rpe.newestVersion)
-		rpe.actual = c == 0
-		report.entries = append(report.entries, rpe)
+		report.entries = append(report.entries, *rpe)
 	}
 
 	return &report, nil
+}
+
+func (dr *DependencyResolver) createEntry(ctx context.Context, req *modfile.Require) (*ReportEntry, error) {
+	info, err := dr.gpc.GetLatest(ctx, req.Mod.Path)
+	if err != nil {
+		return nil, err
+	}
+	if !semver.IsValid(req.Mod.Version) || !semver.IsValid(info.Version) {
+		return nil, errors.New("version not valid")
+	}
+	c := semver.Compare(req.Mod.Version, info.Version)
+	rpe := ReportEntry{
+		module:         req.Mod.Path,
+		currentVersion: req.Mod.Version,
+		newestVersion:  info.Version,
+		actual:         c == 0,
+	}
+	return &rpe, nil
+}
+
+func (report *DependencyReport) Print() {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("+%s+\n", strings.Repeat("-", 68)))
+	sb.WriteString(fmt.Sprintf("|%40s|%8s|%8s|%9s|\n", "module", "current", "newest", "actual"))
+	sb.WriteString(fmt.Sprintf("+%s+\n", strings.Repeat("-", 68)))
+	for _, e := range report.entries {
+		sb.WriteString(fmt.Sprintf("|%40s|%8s|%8s|%9v|\n", e.module, e.currentVersion, e.newestVersion, e.actual))
+	}
+	sb.WriteString(fmt.Sprintf("+%s+\n", strings.Repeat("-", 68)))
+
+	fmt.Print(sb.String())
 }

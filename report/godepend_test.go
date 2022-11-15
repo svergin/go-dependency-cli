@@ -10,9 +10,10 @@ import (
 func TestXxx(t *testing.T) {
 	dr := DependencyResolver{}
 
-	report, err := dr.ErstelleReport(context.Background(), "https://github.com/halimath/mini-httpd.git", "main")
+	report, err := dr.CreateReport(context.Background(), "https://github.com/halimath/mini-httpd.git", "main")
 	if err != nil {
 		t.Fatalf("error occured: %v", err)
 	}
 	assert.Equal(t, 1, len(report.entries))
+	report.Print()
 }
