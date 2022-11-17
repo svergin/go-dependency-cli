@@ -49,7 +49,21 @@ func (dr *DependencyResolver) CreateReport(ctx context.Context, repoURL string, 
 		return nil, err
 	}
 
+	replacements := make((map[string]string), len(modfile.Replace))
+
+	for _, r := range modfile.Replace {
+		_, e1 := replacements[r.Old.Path]
+		if !e1 {
+			replacements[r.Old.Path] = r.Old.Path
+		}
+	}
+
 	for _, req := range modfile.Require {
+		_, e2 := replacements[req.Mod.Path]
+		if e2 {
+			continue
+		}
+
 		rpe, err := dr.createEntry(ctx, req)
 		if err != nil {
 			return nil, err
