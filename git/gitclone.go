@@ -27,7 +27,7 @@ func Clone(ctx context.Context, url, branch string) (fs.FS, error) {
 	}
 
 	billyFs := memfs.New()
-	_, err := gogit.Clone(memory.NewStorage(), billyFs, opts)
+	_, err := gogit.CloneContext(ctx, memory.NewStorage(), billyFs, opts)
 	if err != nil {
 		return nil, err
 	}
